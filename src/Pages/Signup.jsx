@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Loader2, Mail, Lock, UserPlus, ArrowRight, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, UserPlus, ArrowRight, AlertCircle, User } from 'lucide-react'; // Added User icon
 import { supabase } from '../API/supabase';
 import toast from 'react-hot-toast';
 
@@ -12,15 +12,26 @@ const Signup = () => {
     mode: 'onBlur'
   });
 
-  const onSubmit = async ({ email, password }) => {
+  const onSubmit = async ({ email, password, full_name }) => {
     toast.dismiss();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          // This saves the name into user_metadata so the Dashboard can read it
+          data: { 
+            full_name: full_name,
+            display_name: full_name 
+          }
+        }
+      });
+      
       if (error) throw error;
       
       if (data.user) {
-        toast.success('Account Created! Check your email.');
+        toast.success('Account Created!');
         navigate('/dashboard');
       }
     } catch (err) {
@@ -46,6 +57,23 @@ const Signup = () => {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* New Full Name Input */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
+              <div className={`flex items-center bg-slate-50 border rounded-xl px-4 py-3 transition-all ${errors.full_name ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 focus-within:border-indigo-500 focus-within:bg-white'}`}>
+                <User size={16} className={errors.full_name ? 'text-rose-400 mr-3' : 'text-slate-300 mr-3'} />
+                <input
+                  type="text"
+                  placeholder="John Doe"
+                  className="w-full bg-transparent text-sm font-bold outline-none text-slate-700 placeholder:text-slate-300"
+                  {...register("full_name", { 
+                    required: "Name is required",
+                    minLength: { value: 2, message: "Name is too short" }
+                  })}/>
+              </div>
+              {errors.full_name && <p className="text-[9px] font-bold text-rose-500 uppercase ml-1 flex items-center gap-1"><AlertCircle size={10}/> {errors.full_name.message}</p>}
+            </div>
+
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
               <div className={`flex items-center bg-slate-50 border rounded-xl px-4 py-3 transition-all ${errors.email ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 focus-within:border-indigo-500 focus-within:bg-white'}`}>
@@ -61,6 +89,7 @@ const Signup = () => {
               </div>
               {errors.email && <p className="text-[9px] font-bold text-rose-500 uppercase ml-1 flex items-center gap-1"><AlertCircle size={10}/> {errors.email.message}</p>}
             </div>
+
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Set Password</label>
               <div className={`flex items-center bg-slate-50 border rounded-xl px-4 py-3 transition-all ${errors.password ? 'border-rose-400 bg-rose-50/30' : 'border-slate-100 focus-within:border-indigo-500 focus-within:bg-white'}`}>

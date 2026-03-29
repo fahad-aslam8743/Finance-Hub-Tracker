@@ -1,47 +1,96 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../API/supabase';
-import { Wallet, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, ChevronRight } from 'lucide-react';
 
-const Stats = () => {
-  const { data: stats = { balance: 0, income: 0, expense: 0 }, isLoading } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('transactions').select('amount');
-      if (error) throw error;
-      
-      return data.reduce((acc, { amount: amt }) => {
-        if (amt > 0) acc.income += amt;
-        else acc.expense += Math.abs(amt);
-        acc.balance += amt;
-        return acc;
-      }, { balance: 0, income: 0, expense: 0 });
-    },
-  });
-
-  const Card = ({ title, val, icon: Icon, dark }) => (
-    <div className={`p-8 rounded-[2.5rem] border transition-all ${dark ? 'bg-slate-900 border-transparent shadow-xl' : 'bg-white border-slate-100 shadow-sm'}`}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`p-2 rounded-xl ${dark ? 'bg-white/10' : 'bg-slate-50'}`}>
-          <Icon className={dark ? 'text-white' : 'text-slate-400'} size={20} />
-        </div>
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</p>
-      </div>
-      <h3 className={`text-2xl font-black tracking-tighter ${dark ? 'text-white' : 'text-slate-900'}`}>
-        {val < 0 ? '-' : val > 0 && title !== 'Net Worth' ? '+' : ''}${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-      </h3>
-    </div>
-  );
-
-  if (isLoading) return <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-32 bg-slate-100 rounded-[2.5rem]" />)}</div>;
+const Stats = ({ transactions = [] }) => {
+  const totals = useMemo(() => {
+    return transactions.reduce((acc, curr) => {
+      const amt = Number(curr.amount) || 0;
+      if (amt > 0) acc.income += amt;
+      else acc.expense += Math.abs(amt);
+      acc.balance += amt;
+      return acc;
+    }, { balance: 0, income: 0, expense: 0 });
+  }, [transactions]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <Card title="Net Worth" val={stats.balance} icon={Wallet} dark />
-      <Card title="Total Income" val={stats.income} icon={ArrowUpCircle} />
-      <Card title="Total Expenses" val={stats.expense} icon={ArrowDownCircle} />
+    <div className="w-full">
+      {/* MOBILE VIEW: Single Premium Card */}
+      <div className="block md:hidden bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl space-y-8 relative overflow-hidden">
+        {/* Background Decor */}
+        <div className="absolute top-[-20%] right-[-10%] w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl" />
+        
+        <div>
+          <div className="flex items-center gap-2 mb-2 opacity-50">
+            <Wallet size={12} className="text-white" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Net Balance</p>
+          </div>
+          <h2 className="text-4xl font-black tracking-tighter text-white">
+            ${totals.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </h2>
+        </div>
+
+        <div className="flex items-center justify-between pt-6 border-t border-white/10">
+          <div className="space-y-1">
+            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1">
+              <ArrowUpCircle size={10} /> Income
+            </p>
+            <p className="text-lg font-black text-white">
+              ${totals.income.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+            </p>
+          </div>
+          
+          <div className="w-px h-8 bg-white/10" />
+
+          <div className="space-y-1 text-right">
+            <p className="text-[9px] font-black uppercase tracking-widest text-rose-400 flex items-center justify-end gap-1">
+              Expense <ArrowDownCircle size={10} />
+            </p>
+            <p className="text-lg font-black text-white">
+              ${totals.expense.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* DESKTOP VIEW: 3 Column Grid */}
+      <div className="hidden md:grid grid-cols-3 gap-6">
+        <StatCard 
+          title="Net Balance" 
+          val={totals.balance} 
+          icon={Wallet} 
+          colorClass="text-indigo-600" 
+          isNegative={totals.balance < 0}
+        />
+        <StatCard 
+          title="Total Income" 
+          val={totals.income} 
+          icon={ArrowUpCircle} 
+          colorClass="text-emerald-500" 
+        />
+        <StatCard 
+          title="Total Expenses" 
+          val={totals.expense} 
+          icon={ArrowDownCircle} 
+          colorClass="text-rose-500" 
+        />
+      </div>
     </div>
   );
 };
+
+// Internal Sub-component for Desktop
+const StatCard = ({ title, val, icon: Icon, colorClass, isNegative }) => (
+  <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md group">
+    <div className="flex items-center gap-3 mb-4">
+      <div className={`p-2.5 rounded-xl bg-slate-50 transition-colors group-hover:bg-white border border-transparent group-hover:border-slate-100 ${colorClass}`}>
+        <Icon size={18} />
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</p>
+    </div>
+    <h3 className={`text-2xl font-black tracking-tighter ${isNegative ? 'text-rose-600' : 'text-slate-900'}`}>
+      {val < 0 ? '-' : ''}${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+    </h3>
+  </div>
+);
 
 export default Stats;

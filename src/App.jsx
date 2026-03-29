@@ -5,7 +5,7 @@ import Signup from './Pages/Signup'
 import ProtectedRoute from './Components/ProtectedRoute'
 import Dashboard from './Pages/Dashboard'
 import { Toaster } from 'react-hot-toast'
-
+import { AuthProvider } from './hooks/useAuth'
 const App = () => {
   return (
     <div className="antialiased">
@@ -38,7 +38,7 @@ const App = () => {
           },
         }} 
       />
-
+      <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -52,6 +52,7 @@ const App = () => {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
+      </AuthProvider>
     </div>
   )
 }

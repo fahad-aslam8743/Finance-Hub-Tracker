@@ -1,83 +1,93 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../API/supabase';
-import { Trash2, Edit3, Loader2, ArrowUpRight, ArrowDownLeft, Search, Inbox } from 'lucide-react';
+import { Trash2, Edit3, Loader2, Search, Inbox } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const TransactionList = ({ onEdit }) => {
+const TransactionList = ({ transactions = [], isLoading, onEdit }) => {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [userId, setUserId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [expandedId, setExpandedId] = useState(null);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUserId(session.user.id);
-    });
-  }, []);
-
-  const { data: transactions, isLoading } = useQuery({
-    queryKey: ['transactions', userId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  // 1. DELETE LOGIC: One-tap delete with feedback
+  const { mutate: deleteTx, isLoading: isDeletingTx, variables: deletingId } = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;
-      return data || [];
     },
-    enabled: !!userId,
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id) => await supabase.from('transactions').delete().eq('id', id),
     onSuccess: () => {
       queryClient.invalidateQueries(['transactions']);
-      toast.success('Deleted');
+      toast.success('Purged');
+      setExpandedId(null);
     }
   });
 
-  const filteredData = transactions?.filter(t => {
-    const matchesFilter = filter === 'all' ? true : filter === 'income' ? t.amount > 0 : t.amount < 0;
-    return matchesFilter && t.name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // 2. FILTERING: Memoized for performance
+  const filtered = useMemo(() => transactions.filter(t => {
+    const isInc = t.amount > 0;
+    const typeMatch = filter === 'all' || (filter === 'income' ? isInc : !isInc);
+    return typeMatch && t.name?.toLowerCase().includes(search.toLowerCase());
+  }), [transactions, filter, search]);
 
-  if (isLoading && !transactions) return <div className="py-20 text-center"><Loader2 className="mx-auto animate-spin text-indigo-500" /><p className="text-[10px] font-black text-slate-400 uppercase mt-4 tracking-widest">Syncing...</p></div>;
+  if (isLoading && !transactions.length) return <Loader2 className="mx-auto animate-spin py-20 opacity-40" />;
 
   return (
-    <div className="w-full bg-white">
-      <div className="p-6 border-b border-slate-50 space-y-4">
+    <div className="w-full space-y-4">
+      {/* SEARCH & FILTERS */}
+      <div className="p-2 bg-white/30 backdrop-blur-xl border border-white/60 rounded-[2rem] space-y-2">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-          <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none font-medium" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+          <input onChange={e => setSearch(e.target.value)} placeholder="Filter Ledger..." className="w-full pl-12 pr-4 py-3 bg-white/40 rounded-2xl text-xs font-bold outline-none" />
         </div>
-        <div className="flex bg-slate-100/50 p-1 rounded-xl">
-          {['all', 'income', 'expense'].map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filter === f ? 'bg-white text-slate-900 shadow-sm border border-slate-100' : 'text-slate-400'}`}>{f}</button>
+        <div className="flex p-1 bg-slate-900/5 rounded-xl">
+          {['all', 'income', 'expense'].map(f => (
+            <button key={f} onClick={() => setFilter(f)} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filter === f ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400'}`}>{f}</button>
           ))}
         </div>
       </div>
 
-      <div className="divide-y divide-slate-50">
-        {filteredData?.map((t) => (
-          <div key={t.id} className="flex items-center justify-between p-5 hover:bg-slate-50/30 group">
-            <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 flex items-center justify-center rounded-xl border ${t.amount > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                {t.amount > 0 ? <ArrowUpRight size={18}/> : <ArrowDownLeft size={18}/>}
+      {/* TRANSACTION ITEMS */}
+      <div className="space-y-3">
+        {filtered.map(t => {
+          const isInc = t.amount > 0;
+          const isDeleting = isDeletingTx && deletingId === t.id;
+          
+          return (
+            <div key={t.id} className={`overflow-hidden bg-white/40 backdrop-blur-md border border-white/60 rounded-[1.5rem] transition-all duration-300 ${isDeleting ? 'opacity-50 grayscale scale-95' : ''}`}>
+              <div onClick={() => !isDeleting && setExpandedId(expandedId === t.id ? null : t.id)} className="flex items-center justify-between p-4 cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 flex items-center justify-center rounded-xl border ${isInc ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                    {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <div className={`w-1.5 h-1.5 rounded-full ${isInc ? 'bg-emerald-500' : 'bg-rose-500'}`} />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-800 capitalize">{t.name}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className={`text-base md:text-xs font-black ${isInc ? 'text-emerald-600' : 'text-slate-900'}`}>{isInc ? '+' : '-'}${Math.abs(t.amount).toLocaleString()}</p>
+                  <div className="hidden md:flex gap-2">
+                    <button disabled={isDeleting} onClick={(e) => { e.stopPropagation(); onEdit(t); }} className="p-2 text-slate-400 hover:text-blue-600"><Edit3 size={14}/></button>
+                    <button disabled={isDeleting} onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={14}/></button>
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-800 truncate capitalize">{t.name}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
+
+              {/* MOBILE ACTIONS */}
+              <div className={`md:hidden grid transition-all duration-300 ${expandedId === t.id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="flex gap-2 px-5 pb-5 pt-1 border-t border-white/20">
+                    <button disabled={isDeleting} onClick={(e) => { e.stopPropagation(); onEdit(t); }} className="flex-1 py-3 bg-white/60 rounded-xl text-blue-600 text-[10px] font-black uppercase tracking-widest shadow-sm">Edit</button>
+                    <button disabled={isDeleting} onClick={(e) => { e.stopPropagation(); deleteTx(t.id); }} className="flex-1 py-3 bg-rose-50 rounded-xl text-rose-600 text-[10px] font-black uppercase tracking-widest shadow-sm">Delete</button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-5">
-              <p className={`text-sm font-black ${t.amount > 0 ? 'text-emerald-600' : 'text-slate-900'}`}>{t.amount > 0 ? '+' : '-'}${Math.abs(t.amount).toLocaleString()}</p>
-              <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => onEdit(t)} className="p-1.5 text-slate-300 hover:text-indigo-600"><Edit3 size={14}/></button>
-                <button onClick={() => deleteMutation.mutate(t.id)} className="p-1.5 text-slate-300 hover:text-rose-600"><Trash2 size={14}/></button>
-              </div>
-            </div>
-          </div>
-        ))}
-        {filteredData?.length === 0 && <div className="py-24 text-center"><Inbox className="mx-auto text-slate-200 mb-2" size={32} /><p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">No Data</p></div>}
+          );
+        })}
       </div>
+      {!filtered.length && <div className="py-20 text-center opacity-30 text-[10px] font-black uppercase tracking-widest"><Inbox className="mx-auto mb-2" /> Vault Empty</div>}
     </div>
   );
 };
