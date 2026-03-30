@@ -18,8 +18,6 @@ const Dashboard = () => {
   const { session, loading: authLoading } = useAuth();
   const [editingData, setEditingData] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  
-  // Check if this is the first visit in this session
   const [showLoader, setShowLoader] = useState(() => {
     return !sessionStorage.getItem('dashboard_loaded');
   });
@@ -36,8 +34,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!authLoading && !session) return navigate('/');
-    
-    // If loader is active, turn it off after 2s and mark as loaded
     if (showLoader) {
       const timer = setTimeout(() => {
         setShowLoader(false);
@@ -76,7 +72,7 @@ const Dashboard = () => {
     <DashboardLayout onLogout={async () => { 
       await supabase.auth.signOut(); 
       queryClient.clear(); 
-      sessionStorage.removeItem('dashboard_loaded'); // Reset so it shows next login
+      sessionStorage.removeItem('dashboard_loaded');
       navigate('/'); 
     }}>
       <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 space-y-10 pb-32">
@@ -107,16 +103,24 @@ const Dashboard = () => {
       </div>
 
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
-        <button onClick={() => toggleForm()} className="flex items-center gap-2.5 px-5 py-3 bg-slate-900 text-white rounded-full shadow-lg hover:bg-indigo-600 transition-all active:scale-95">
-          <Plus size={16} strokeWidth={3} />
-          <span className="font-bold text-[10px] uppercase tracking-wider pr-1">Add Entry</span>
-        </button>
+        <button 
+  onClick={() => toggleForm()} 
+  className="flex items-center gap-2.5 px-5 py-3 md:px-6 md:py-3 bg-slate-900 text-white rounded-full shadow-lg hover:bg-indigo-600 transition-all active:scale-95"
+>
+  <Plus 
+    className="w-4 h-4 md:w-6 md:h-6" 
+    strokeWidth={3} 
+  />
+  <span className="font-bold text-[10px] md:text-sm uppercase tracking-wider pr-1">
+    Add Entry
+  </span>
+</button>
       </div>
 
       <GlassModal 
         isOpen={isFormOpen} 
         onClose={() => toggleForm()} 
-        title={editingData ? "Edit" : "New"}
+        title={editingData ? "Edit Entry" : "New Entry"}
       >
         <TransactionForm 
           editingData={editingData} 

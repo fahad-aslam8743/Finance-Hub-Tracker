@@ -26,7 +26,6 @@ const AnalyticsChart = ({ transactions = [] }) => {
 
   return (
     <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm space-y-6">
-      {/* 1. CSS STRIKE: This removes the blue/black focus ring from the SVG itself */}
       <style>{`
         .recharts-surface:focus {
           outline: none !important;
@@ -58,7 +57,7 @@ const AnalyticsChart = ({ transactions = [] }) => {
           <AreaChart 
             data={chartData} 
             margin={{ left: -40, right: 0, top: 10, bottom: 0 }}
-            accessibilityLayer={false} // 2. DISABLES the keyboard/click focus layer
+            accessibilityLayer={false}
           >
             <defs>
               <linearGradient id="p-grad" x1="0" y1="0" x2="0" y2="1">
@@ -81,7 +80,7 @@ const AnalyticsChart = ({ transactions = [] }) => {
               stroke="#10b981" 
               strokeWidth={3} 
               fill="url(#p-grad)" 
-              activeDot={false} // 3. ENSURES no dot outline on click
+              activeDot={false} 
             />
             <Area 
               type="monotone" 
