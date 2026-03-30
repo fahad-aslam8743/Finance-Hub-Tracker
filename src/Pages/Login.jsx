@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { supabase } from '../API/supabase';
-import { Command, Loader2, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Command, Loader2, Mail, Lock, ArrowRight, AlertCircle, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
+
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm({ 
     mode: 'onBlur' 
@@ -28,6 +30,23 @@ const Login = () => {
       setLoading(false);
     }
   };
+  
+  const handleDemoLogin = async () => {
+  setDemoLoading(true); 
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: 'demo@example.com',
+      password: 'demo-password123',
+    });
+
+    if (error) throw error;
+    navigate('/dashboard');
+  } catch (error) {
+    console.error(error.message);
+  } finally {
+    setDemoLoading(false); 
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
@@ -90,6 +109,19 @@ const Login = () => {
                 </>
               )}
             </button>
+            <button
+            onClick={handleDemoLogin}
+            type="button"
+            disabled={demoLoading} 
+            className="w-full mt-4 py-3 px-4 border border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900 rounded-xl font-bold text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+            >
+            {demoLoading ? (
+            <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+           <Zap size={16} className="animate-pulse" />
+           )}
+           {demoLoading ? "Connecting..." : "Explore as Guest"}
+           </button>
           </form>
 
           <div className="mt-8 text-center border-t border-slate-50 pt-6">
