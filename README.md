@@ -5,7 +5,7 @@ A modern, responsive, and secure Finance Dashboard Authentication system built w
 ---
 
 ## 🔗 Live Demo
-✨ **Check out the live application here:** [https://finance-hub-tracker.vercel.app/](https://finance-hub-tracker.vercel.app/)
+✨ **Check out the live application here:** [Live Demo](https://finance-hub-tracker.vercel.app/)
 
 ---
 
