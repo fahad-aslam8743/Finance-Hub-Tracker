@@ -1,7 +1,7 @@
 import React from 'react';
 import { Wallet, LogOut } from 'lucide-react';
 
-const DashboardLayout = ({ children, isBlur, onLogout }) => {
+const DashboardLayout = ({ children, onLogout }) => {
   return (
     <div className="min-h-screen bg-[#F8F9FD] text-slate-900 antialiased relative overflow-x-hidden">
       <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[120px] pointer-events-none" />
@@ -22,7 +22,7 @@ const DashboardLayout = ({ children, isBlur, onLogout }) => {
           </button>
         </div>
       </nav>
-      <main className={`max-w-[1300px] mx-auto p-4 md:p-10 lg:p-16 transition-all duration-700 ${isBlur ? 'scale-[0.97] blur-2xl opacity-20 pointer-events-none' : ''}`}>
+      <main className='max-w-[1300px] mx-auto p-4 md:p-10 lg:p-16 transition-all duration-700'>
         {children}
       </main>
     </div>
