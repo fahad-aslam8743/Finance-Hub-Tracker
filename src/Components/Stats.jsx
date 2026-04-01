@@ -14,9 +14,7 @@ const Stats = ({ transactions = [] }) => {
 
   return (
     <div className="w-full">
-      {/* MOBILE VIEW: Single Premium Card */}
       <div className="block md:hidden bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl space-y-8 relative overflow-hidden">
-        {/* Background Decor */}
         <div className="absolute top-[-20%] right-[-10%] w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl" />
         
         <div>
